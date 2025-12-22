@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -13,30 +14,54 @@ interface Product {
   rating: number
   reviews: number
   description: string
+  quantity?: number
 }
 
-const products: Product[] = [
+const banners: Product[] = [
   { id: 1, name: 'Phone Case Premium', category: 'Cases', price: 500, image: '/banners/case.jpg', rating: 4.5, reviews: 25, description: 'Premium quality phone case with shock absorption' },
   { id: 2, name: 'Tempered Glass', category: 'Screen Protectors', price: 300, image: '/banners/pro.jpg', rating: 4.8, reviews: 40, description: '9H hardness tempered glass screen protector' },
   { id: 3, name: 'Power Bank 20000mAh', category: 'Power Banks', price: 3500, image: '/banners/powe.jpg', rating: 4.6, reviews: 30, description: 'Fast charging power bank with dual USB ports' },
   { id: 4, name: 'USB-C Cable', category: 'Cables', price: 250, image: '/banners/charg.jpg', rating: 4.3, reviews: 50, description: 'Durable USB-C fast charging cable' },
-  { id: 5, name: 'Wireless Earbuds', category: 'Earbuds', price: 2500, image: '/products/earbuds1.jpg', rating: 4.7, reviews: 35, description: 'High quality wireless earbuds with noise cancellation' },
-  { id: 6, name: 'Car Phone Holder', category: 'Holders', price: 800, image: '/products/holder1.jpg', rating: 4.4, reviews: 20, description: 'Universal car phone holder with strong grip' },
-  { id: 7, name: 'Bluetooth Speaker', category: 'Speakers', price: 1800, image: '/products/speaker1.jpg', rating: 4.5, reviews: 28, description: 'Portable Bluetooth speaker with bass boost' },
-  { id: 8, name: 'Smart Watch Strap', category: 'Straps', price: 600, image: '/products/strap1.jpg', rating: 4.2, reviews: 15, description: 'Silicone strap for smart watches' },
-  { id: 9, name: 'Phone Ring Holder', category: 'Accessories', price: 200, image: '/products/ring1.jpg', rating: 4.0, reviews: 22, description: 'Rotating ring holder for phones' },
-  { id: 10, name: 'Wall Charger Fast', category: 'Chargers', price: 700, image: '/products/charger1.jpg', rating: 4.6, reviews: 45, description: 'Fast wall charger with multiple ports' },
-  { id: 11, name: 'AUX Cable Premium', category: 'Cables', price: 350, image: '/products/aux1.jpg', rating: 4.3, reviews: 18, description: 'Premium quality AUX cable for audio' },
-  { id: 12, name: 'Phone Stand Adjustable', category: 'Holders', price: 450, image: '/products/stand1.jpg', rating: 4.4, reviews: 12, description: 'Adjustable phone stand for desk' },
+  { id: 5, name: 'Wireless Earbuds', category: 'Earbuds', price: 2500, image: '/banners/ear.jpg', rating: 4.7, reviews: 35, description: 'High quality wireless earbuds with noise cancellation' },
+  { id: 6, name: 'Car Phone Holder', category: 'Holders', price: 800, image: '/banners/car.jpg', rating: 4.4, reviews: 20, description: 'Universal car phone holder with strong grip' },
+  { id: 7, name: 'Bluetooth Speaker', category: 'Speakers', price: 1800, image: '/banners/speaker.jpg', rating: 4.5, reviews: 28, description: 'Portable Bluetooth speaker with bass boost' },
+  { id: 8, name: 'Smart Watch Strap', category: 'Straps', price: 600, image: '/banners/watch.jpg', rating: 4.2, reviews: 15, description: 'Silicone strap for smart watches' },
+  { id: 9, name: 'Phone Ring Holder', category: 'Accessories', price: 200, image: '/banners/ring.jpg', rating: 4.0, reviews: 22, description: 'Rotating ring holder for phones' },
+  { id: 10, name: 'Wall Charger Fast', category: 'Chargers', price: 700, image: '/banners/charg.jpg', rating: 4.6, reviews: 45, description: 'Fast wall charger with multiple ports' },
+  { id: 11, name: 'AUX Cable Premium', category: 'Cables', price: 350, image: '/banners/aux1.jpg', rating: 4.3, reviews: 18, description: 'Premium quality AUX cable for audio' },
+  { id: 12, name: 'Phone Stand Adjustable', category: 'Holders', price: 450, image: '/banners/stand1.jpg', rating: 4.4, reviews: 12, description: 'Adjustable phone stand for desk' },
 ]
 
 export default function ShopPage() {
-  const [cart, setCart] = useState<Product[]>([])
-  const [showCart, setShowCart] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Update cart count from localStorage
+    const savedCart = localStorage.getItem('cart')
+    if (savedCart) {
+      const cart = JSON.parse(savedCart)
+      setCartCount(cart.length)
+    }
+  }, [])
 
   const addToCart = (product: Product) => {
-    setCart([...cart, product])
-    setShowCart(true)
+    const savedCart = localStorage.getItem('cart')
+    let cart = savedCart ? JSON.parse(savedCart) : []
+    
+    // Check if product already exists in cart
+    const existingItem = cart.find((item: Product) => item.id === product.id)
+    if (existingItem) {
+      existingItem.quantity += 1
+    } else {
+      cart.push({ ...product, quantity: 1 })
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cart))
+    setCartCount(cart.length)
+    
+    // Show success message
+    alert(`${product.name} added to cart!`)
   }
 
   return (
@@ -44,12 +69,33 @@ export default function ShopPage() {
       {/* Header */}
       <div className="w-full py-12 md:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 
-            className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 text-black"
-            style={{ fontFamily: '"Times New Roman", serif' }}
-          >
-            Our Shop
-          </h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-black"
+              style={{ fontFamily: '"Times New Roman", serif' }}
+            >
+              Our Shop
+            </h1>
+            
+            {/* Cart Icon */}
+            <button
+              onClick={() => router.push('/cart')}
+              className="relative p-2 hover:opacity-70 transition-opacity"
+              style={{ color: '#0359b3' }}
+            >
+              <svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              {cartCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold"
+                  style={{ backgroundColor: '#0359b3' }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
           <p 
             className="text-center text-base md:text-lg max-w-2xl mx-auto"
             style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
@@ -59,10 +105,10 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Products Grid */}
+      {/* banners Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {products.map((product) => (
+          {banners.map((product) => (
             <div
               key={product.id}
               className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
@@ -133,124 +179,6 @@ export default function ShopPage() {
           ))}
         </div>
       </div>
-
-      {/* Cart Modal */}
-      {showCart && cart.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 
-                className="text-xl md:text-2xl font-bold text-black"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Your Cart
-              </h2>
-              <button
-                onClick={() => setShowCart(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Cart Items */}
-            <div className="space-y-4 mb-6">
-              {cart.map((item, index) => (
-                <div key={index} className="flex gap-3 border-b border-gray-200 pb-3">
-                  <div className="relative w-16 h-16 flex-shrink-0">
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-cover rounded"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h4 
-                      className="text-sm font-semibold text-black"
-                      style={{ fontFamily: '"Times New Roman", serif' }}
-                    >
-                      {item.name}
-                    </h4>
-                    <p 
-                      className="text-sm font-bold"
-                      style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-                    >
-                      Rs. {item.price}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Total */}
-            <div className="border-t border-gray-300 pt-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span 
-                  className="text-lg font-bold text-black"
-                  style={{ fontFamily: '"Times New Roman", serif' }}
-                >
-                  Total:
-                </span>
-                <span 
-                  className="text-xl font-bold"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-                >
-                  Rs. {cart.reduce((sum, item) => sum + item.price, 0)}
-                </span>
-              </div>
-            </div>
-
-            {/* Payment Options */}
-            <div className="space-y-3">
-              <h3 
-                className="text-lg font-bold text-black mb-3"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Select Payment Method
-              </h3>
-              
-              <button
-                onClick={() => {
-                  alert('Cash on Delivery selected! We will contact you soon.')
-                  setCart([])
-                  setShowCart(false)
-                }}
-                className="w-full py-3 rounded-lg border-2 border-black font-semibold hover:bg-gray-50 transition-all text-black"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Cash on Delivery
-              </button>
-
-              <button
-                onClick={() => {
-                  const whatsappNumber = '923001234567'
-                  const message = `Hi! I want to place an order via Easypaisa.\n\nOrder Details:\n${cart.map(item => `${item.name} - Rs. ${item.price}`).join('\n')}\n\nTotal: Rs. ${cart.reduce((sum, item) => sum + item.price, 0)}\n\nEasypaisa Number: 03001234567\n\nI will send the payment screenshot shortly.`
-                  window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank')
-                }}
-                className="w-full py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-all"
-                style={{ backgroundColor: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-              >
-                Pay via Easypaisa
-              </button>
-
-              <div 
-                className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
-              >
-                <p 
-                  className="text-xs md:text-sm text-center font-medium"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-                >
-                  <strong>Easypaisa Number:</strong> 03001234567<br />
-                  Payment is compulsory. Send us your payment screenshot on our WhatsApp.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

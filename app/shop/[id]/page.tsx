@@ -4,35 +4,46 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-const products = [
-  { id: 1, name: 'Phone Case Premium', category: 'Cases', price: 500, image: '/products/case1.jpg', rating: 4.5, reviews: 25, description: 'Premium quality phone case with shock absorption. Made with high-grade materials to protect your device from drops and scratches.' },
-  { id: 2, name: 'Tempered Glass', category: 'Screen Protectors', price: 300, image: '/products/glass1.jpg', rating: 4.8, reviews: 40, description: '9H hardness tempered glass screen protector. Provides excellent protection against scratches and impacts.' },
-  { id: 3, name: 'Power Bank 20000mAh', category: 'Power Banks', price: 3500, image: '/products/powerbank1.jpg', rating: 4.6, reviews: 30, description: 'Fast charging power bank with dual USB ports. Keep your devices charged on the go.' },
-  { id: 4, name: 'USB-C Cable', category: 'Cables', price: 250, image: '/products/cable1.jpg', rating: 4.3, reviews: 50, description: 'Durable USB-C fast charging cable. Supports fast charging and data transfer.' },
-  { id: 5, name: 'Wireless Earbuds', category: 'Earbuds', price: 2500, image: '/products/earbuds1.jpg', rating: 4.7, reviews: 35, description: 'High quality wireless earbuds with noise cancellation. Enjoy crystal clear sound.' },
-  { id: 6, name: 'Car Phone Holder', category: 'Holders', price: 800, image: '/products/holder1.jpg', rating: 4.4, reviews: 20, description: 'Universal car phone holder with strong grip. Safe and secure mounting.' },
-  { id: 7, name: 'Bluetooth Speaker', category: 'Speakers', price: 1800, image: '/products/speaker1.jpg', rating: 4.5, reviews: 28, description: 'Portable Bluetooth speaker with bass boost. Perfect for music lovers.' },
-  { id: 8, name: 'Smart Watch Strap', category: 'Straps', price: 600, image: '/products/strap1.jpg', rating: 4.2, reviews: 15, description: 'Silicone strap for smart watches. Comfortable and durable.' },
-  { id: 9, name: 'Phone Ring Holder', category: 'Accessories', price: 200, image: '/products/ring1.jpg', rating: 4.0, reviews: 22, description: 'Rotating ring holder for phones. Prevents drops and acts as a stand.' },
-  { id: 10, name: 'Wall Charger Fast', category: 'Chargers', price: 700, image: '/products/charger1.jpg', rating: 4.6, reviews: 45, description: 'Fast wall charger with multiple ports. Charge multiple devices simultaneously.' },
-  { id: 11, name: 'AUX Cable Premium', category: 'Cables', price: 350, image: '/products/aux1.jpg', rating: 4.3, reviews: 18, description: 'Premium quality AUX cable for audio. Crystal clear sound transmission.' },
-  { id: 12, name: 'Phone Stand Adjustable', category: 'Holders', price: 450, image: '/products/stand1.jpg', rating: 4.4, reviews: 12, description: 'Adjustable phone stand for desk. Perfect for video calls and watching content.' },
+const banners = [
+  { id: 1, name: 'Phone Case Premium', category: 'Cases', price: 500, image: '/banners/case.jpg', rating: 4.5, reviews: 25, description: 'Premium quality phone case with shock absorption. Made with high-grade materials to protect your device from drops and scratches.' },
+  { id: 2, name: 'Tempered Glass', category: 'Screen Protectors', price: 300, image: '/banners/pro.jpg', rating: 4.8, reviews: 40, description: '9H hardness tempered glass screen protector. Provides excellent protection against scratches and impacts.' },
+  { id: 3, name: 'Power Bank 20000mAh', category: 'Power Banks', price: 3500, image: '/banners/powe.jpg', rating: 4.6, reviews: 30, description: 'Fast charging power bank with dual USB ports. Keep your devices charged on the go.' },
+  { id: 4, name: 'USB-C Cable', category: 'Cables', price: 250, image: '/banners/cable1.jpg', rating: 4.3, reviews: 50, description: 'Durable USB-C fast charging cable. Supports fast charging and data transfer.' },
+  { id: 5, name: 'Wireless Earbuds', category: 'Earbuds', price: 2500, image: '/banners/ear.jpg', rating: 4.7, reviews: 35, description: 'High quality wireless earbuds with noise cancellation. Enjoy crystal clear sound.' },
+  { id: 6, name: 'Car Phone Holder', category: 'Holders', price: 800, image: '/banners/car.jpg', rating: 4.4, reviews: 20, description: 'Universal car phone holder with strong grip. Safe and secure mounting.' },
+  { id: 7, name: 'Bluetooth Speaker', category: 'Speakers', price: 1800, image: '/banners/speaker.jpg', rating: 4.5, reviews: 28, description: 'Portable Bluetooth speaker with bass boost. Perfect for music lovers.' },
+  { id: 8, name: 'Smart Watch Strap', category: 'Straps', price: 600, image: '/banners/watch.jpg', rating: 4.2, reviews: 15, description: 'Silicone strap for smart watches. Comfortable and durable.' },
+  { id: 9, name: 'Phone Ring Holder', category: 'Accessories', price: 200, image: '/banners/ring.jpg', rating: 4.0, reviews: 22, description: 'Rotating ring holder for phones. Prevents drops and acts as a stand.' },
+  { id: 10, name: 'Wall Charger Fast', category: 'Chargers', price: 700, image: '/banners/charg.jpg', rating: 4.6, reviews: 45, description: 'Fast wall charger with multiple ports. Charge multiple devices simultaneously.' },
+  { id: 11, name: 'AUX Cable Premium', category: 'Cables', price: 350, image: '/banners/aux1.jpg', rating: 4.3, reviews: 18, description: 'Premium quality AUX cable for audio. Crystal clear sound transmission.' },
+  { id: 12, name: 'Phone Stand Adjustable', category: 'Holders', price: 450, image: '/banners/stand1.jpg', rating: 4.4, reviews: 12, description: 'Adjustable phone stand for desk. Perfect for video calls and watching content.' },
 ]
 
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [userRating, setUserRating] = useState(0)
-  const [showCart, setShowCart] = useState(false)
   
-  const product = products.find(p => p.id === parseInt(params.id as string))
+  const product = banners.find(p => p.id === parseInt(params.id as string))
 
   if (!product) {
     return <div className="text-center py-20 text-black">Product not found</div>
   }
 
   const handleAddToCart = () => {
-    setShowCart(true)
+    const savedCart = localStorage.getItem('cart')
+    let cart = savedCart ? JSON.parse(savedCart) : []
+    
+    const existingItem = cart.find((item: any) => item.id === product.id)
+    if (existingItem) {
+      existingItem.quantity += 1
+    } else {
+      cart.push({ ...product, quantity: 1 })
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cart))
+    alert(`${product.name} added to cart!`)
+    router.push('/cart')
   }
 
   return (
@@ -171,99 +182,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Cart Modal (same as shop page) */}
-      {showCart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 md:p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 
-                className="text-xl md:text-2xl font-bold text-black"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Checkout
-              </h2>
-              <button
-                onClick={() => setShowCart(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Product in Cart */}
-            <div className="mb-6 flex gap-3 border-b border-gray-200 pb-4">
-              <div className="relative w-20 h-20 flex-shrink-0">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover rounded"
-                />
-              </div>
-              <div>
-                <h4 
-                  className="text-base font-semibold text-black mb-1"
-                  style={{ fontFamily: '"Times New Roman", serif' }}
-                >
-                  {product.name}
-                </h4>
-                <p 
-                  className="text-lg font-bold"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-                >
-                  Rs. {product.price}
-                </p>
-              </div>
-            </div>
-
-            {/* Payment Options */}
-            <div className="space-y-3">
-              <h3 
-                className="text-lg font-bold text-black mb-3"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Select Payment Method
-              </h3>
-              
-              <button
-                onClick={() => {
-                  alert('Cash on Delivery selected! We will contact you soon.')
-                  setShowCart(false)
-                }}
-                className="w-full py-3 rounded-lg border-2 border-black font-semibold hover:bg-gray-50 transition-all text-black"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Cash on Delivery
-              </button>
-
-              <button
-                onClick={() => {
-                  const whatsappNumber = '923001234567'
-                  const message = `Hi! I want to order:\n\n${product.name}\nPrice: Rs. ${product.price}\n\nPayment Method: Easypaisa\nEasypaisa Number: 03001234567\n\nI will send the payment screenshot shortly.`
-                  window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank')
-                }}
-                className="w-full py-3 rounded-lg text-white font-semibold hover:opacity-90 transition-all"
-                style={{ backgroundColor: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-              >
-                Pay via Easypaisa
-              </button>
-
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p 
-                  className="text-xs md:text-sm text-center font-medium"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-                >
-                  <strong>Easypaisa Number:</strong> 03001234567<br />
-                  Payment is compulsory. Send us your payment screenshot on our WhatsApp.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

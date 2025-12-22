@@ -38,6 +38,9 @@ export default function Navbar() {
             <Link href="/contact" className="font-medium hover:opacity-80 transition-opacity" style={{ color: '#080808' }}>
               Contact
             </Link>
+            <Link href="/cart" className="font-medium hover:opacity-80 transition-opacity" style={{ color: '#080808' }}>
+              Cart
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -85,6 +88,14 @@ export default function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               Contact
+            </Link>
+            <Link 
+              href="/cart" 
+              className="font-medium hover:opacity-80 transition-opacity py-2" 
+              style={{ color: '#080808' }}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Cart
             </Link>
           </div>
         )}
