@@ -116,7 +116,7 @@ export default function ContactPage() {
                   <div>
                     <h3 
                       className="font-semibold text-lg mb-1"
-                      style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                      style={{ color: '#000000ff', fontFamily: '"Times New Roman", serif' }}
                     >
                       Phone
                     </h3>
@@ -124,7 +124,7 @@ export default function ContactPage() {
                       className="text-sm md:text-base"
                       style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
                     >
-                      +92 300 1234567
+                      +92-326-3404576
                     </p>
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function ContactPage() {
                   <div>
                     <h3 
                       className="font-semibold text-lg mb-1"
-                      style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                      style={{ color: '#000000ff', fontFamily: '"Times New Roman", serif' }}
                     >
                       Email
                     </h3>
@@ -162,7 +162,7 @@ export default function ContactPage() {
                   <div>
                     <h3 
                       className="font-semibold text-lg mb-1"
-                      style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                      style={{ color: '#000000ff', fontFamily: '"Times New Roman", serif' }}
                     >
                       Working Hours
                     </h3>
