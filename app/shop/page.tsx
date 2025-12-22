@@ -66,52 +66,61 @@ export default function ShopPage() {
 
   return (
     <div className="w-full bg-white min-h-screen">
-      {/* Header */}
-      <div className="w-full py-12 md:py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-4">
-            <h1 
-              className="text-3xl md:text-4xl lg:text-5xl font-bold text-black"
-              style={{ fontFamily: '"Times New Roman", serif' }}
-            >
-              Our Shop
-            </h1>
+      {/* Enhanced Header with Gradient Background */}
+      <div className="w-full py-12 md:py-16 relative overflow-hidden" style={{ 
+        background: 'linear-gradient(135deg, #0359b3 0%, #0470d8 100%)'
+      }}>
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex-1">
+              <h1 
+                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 tracking-tight"
+                style={{ fontFamily: '"Times New Roman", serif' }}
+              >
+                Explore Premium Accessories
+              </h1>
+              <div className="w-20 h-1 bg-white rounded-full"></div>
+            </div>
             
             {/* Cart Icon */}
             <button
               onClick={() => router.push('/cart')}
-              className="relative p-2 hover:opacity-70 transition-opacity"
-              style={{ color: '#0359b3' }}
+              className="relative p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all duration-300"
             >
-              <svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               {cartCount > 0 && (
                 <span 
-                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold"
-                  style={{ backgroundColor: '#0359b3' }}
+                  className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white text-xs flex items-center justify-center font-bold shadow-lg"
+                  style={{ color: '#0359b3' }}
                 >
                   {cartCount}
                 </span>
               )}
             </button>
           </div>
+          
           <p 
-            className="text-center text-base md:text-lg max-w-2xl mx-auto"
-            style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+            className="text-white text-base md:text-lg max-w-2xl leading-relaxed opacity-95"
+            style={{ fontFamily: '"Times New Roman", serif' }}
           >
-            Browse our collection of quality mobile accessories
+            Discover premium mobile accessories crafted for quality and style. Find the perfect match for your device.
           </p>
         </div>
       </div>
 
-      {/* banners Grid */}
+      {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {banners.map((product) => (
             <div
               key={product.id}
-              className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
+              className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 flex flex-col"
             >
               {/* Product Image */}
               <Link href={`/shop/${product.id}`}>
@@ -126,10 +135,10 @@ export default function ShopPage() {
               </Link>
 
               {/* Product Info */}
-              <div className="p-3 md:p-4">
+              <div className="p-3 md:p-4 flex flex-col flex-grow">
                 <Link href={`/shop/${product.id}`}>
                   <h3 
-                    className="text-sm md:text-base font-semibold mb-2 text-black hover:underline cursor-pointer"
+                    className="text-sm md:text-base font-semibold mb-2 text-black hover:underline cursor-pointer line-clamp-2"
                     style={{ fontFamily: '"Times New Roman", serif' }}
                   >
                     {product.name}
@@ -166,10 +175,10 @@ export default function ShopPage() {
                   Rs. {product.price}
                 </p>
 
-                {/* Add to Cart Button */}
+                {/* Add to Cart Button - Now at the bottom with proper spacing */}
                 <button
                   onClick={() => addToCart(product)}
-                  className="w-full py-2 md:py-2.5 rounded-lg text-white font-medium text-xs md:text-sm hover:opacity-90 transition-all"
+                  className="w-full py-2 md:py-2.5 rounded-lg text-white font-medium text-xs md:text-sm hover:opacity-90 transition-all mt-auto"
                   style={{ backgroundColor: '#0359b3', fontFamily: '"Times New Roman", serif' }}
                 >
                   Add to Cart

@@ -82,6 +82,11 @@ export default function Footer() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link href="/cart" className="text-white hover:opacity-80 transition-opacity text-sm md:text-base" style={{ fontFamily: '"Times New Roman", serif' }}>
+                  Cart
+                </Link>
+              </li>
             </ul>
           </div>
 
