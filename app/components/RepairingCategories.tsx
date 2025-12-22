@@ -46,7 +46,7 @@ const categories = [
 ]
 
 export default function RepairingCategories() {
-  const whatsappNumber = '923263404576 // Replace with your actual WhatsApp number'
+  const whatsappNumber = '923263404576' // Replace with your actual WhatsApp number
   
   const handleWhatsAppClick = (categoryName: string) => {
     const message = `Hi! I need repair service for ${categoryName}`
