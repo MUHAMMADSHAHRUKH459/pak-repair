@@ -10,13 +10,33 @@ export default function ContactPage() {
     message: ''
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission - you can add your logic here
-    const whatsappNumber = '923001234567'
-    const message = `Name: ${formData.name}%0AEmail: ${formData.email}%0APhone: ${formData.phone}%0AMessage: ${formData.message}`
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`
-    window.open(whatsappUrl, '_blank')
+    setSubmitStatus('submitting')
+
+    try {
+      const response = await fetch('https://formspree.io/f/meejljdq', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setSubmitStatus('success')
+        setFormData({ name: '', email: '', phone: '', message: '' })
+        setTimeout(() => setSubmitStatus('idle'), 5000)
+      } else {
+        setSubmitStatus('error')
+        setTimeout(() => setSubmitStatus('idle'), 5000)
+      }
+    } catch (error) {
+      setSubmitStatus('error')
+      setTimeout(() => setSubmitStatus('idle'), 5000)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -32,8 +52,8 @@ export default function ContactPage() {
       <div className="w-full py-12 md:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 
-            className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4"
-            style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+            className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 text-black"
+            style={{ fontFamily: '"Times New Roman", serif' }}
           >
             Contact Us
           </h1>
@@ -55,8 +75,8 @@ export default function ContactPage() {
             {/* Contact Details */}
             <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-100">
               <h2 
-                className="text-2xl md:text-3xl font-bold mb-6"
-                style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                className="text-2xl md:text-3xl font-bold mb-6 text-black"
+                style={{ fontFamily: '"Times New Roman", serif' }}
               >
                 Get In Touch
               </h2>
@@ -72,8 +92,8 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 
-                      className="font-semibold text-lg mb-1"
-                      style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                      className="font-semibold text-lg mb-1 text-black"
+                      style={{ fontFamily: '"Times New Roman", serif' }}
                     >
                       Address
                     </h3>
@@ -81,7 +101,7 @@ export default function ContactPage() {
                       className="text-sm md:text-base"
                       style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
                     >
-                      Pak Repair, Karachi, Pakistan
+                      Saqib Bakery, Karachi, Pakistan
                     </p>
                   </div>
                 </div>
@@ -104,7 +124,7 @@ export default function ContactPage() {
                       className="text-sm md:text-base"
                       style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
                     >
-                      +92-3263404576
+                      +92 300 1234567
                     </p>
                   </div>
                 </div>
@@ -176,8 +196,8 @@ export default function ContactPage() {
           {/* Contact Form */}
           <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-100">
             <h2 
-              className="text-2xl md:text-3xl font-bold mb-6"
-              style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+              className="text-2xl md:text-3xl font-bold mb-6 text-black"
+              style={{ fontFamily: '"Times New Roman", serif' }}
             >
               Send Us a Message
             </h2>
@@ -187,8 +207,8 @@ export default function ContactPage() {
               <div>
                 <label 
                   htmlFor="name" 
-                  className="block text-sm md:text-base font-semibold mb-2"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                  className="block text-sm md:text-base font-semibold mb-2 text-black"
+                  style={{ fontFamily: '"Times New Roman", serif' }}
                 >
                   Full Name *
                 </label>
@@ -199,9 +219,8 @@ export default function ContactPage() {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100 transition-colors"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-black focus:outline-none focus:border-black transition-colors"
                   style={{ 
-                    borderColor: '#0359b3', 
                     color: '#0359b3',
                     fontFamily: '"Times New Roman", serif'
                   }}
@@ -213,8 +232,8 @@ export default function ContactPage() {
               <div>
                 <label 
                   htmlFor="email" 
-                  className="block text-sm md:text-base font-semibold mb-2"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                  className="block text-sm md:text-base font-semibold mb-2 text-black"
+                  style={{ fontFamily: '"Times New Roman", serif' }}
                 >
                   Email Address *
                 </label>
@@ -225,9 +244,8 @@ export default function ContactPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100 transition-colors"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-black focus:outline-none focus:border-black transition-colors"
                   style={{ 
-                    borderColor: '#0359b3', 
                     color: '#0359b3',
                     fontFamily: '"Times New Roman", serif'
                   }}
@@ -239,8 +257,8 @@ export default function ContactPage() {
               <div>
                 <label 
                   htmlFor="phone" 
-                  className="block text-sm md:text-base font-semibold mb-2"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                  className="block text-sm md:text-base font-semibold mb-2 text-black"
+                  style={{ fontFamily: '"Times New Roman", serif' }}
                 >
                   Phone Number *
                 </label>
@@ -251,9 +269,8 @@ export default function ContactPage() {
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100 transition-colors"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-black focus:outline-none focus:border-black transition-colors"
                   style={{ 
-                    borderColor: '#0359b3', 
                     color: '#0359b3',
                     fontFamily: '"Times New Roman", serif'
                   }}
@@ -265,8 +282,8 @@ export default function ContactPage() {
               <div>
                 <label 
                   htmlFor="message" 
-                  className="block text-sm md:text-base font-semibold mb-2"
-                  style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
+                  className="block text-sm md:text-base font-semibold mb-2 text-black"
+                  style={{ fontFamily: '"Times New Roman", serif' }}
                 >
                   Message *
                 </label>
@@ -277,9 +294,8 @@ export default function ContactPage() {
                   value={formData.message}
                   onChange={handleChange}
                   rows={5}
-                  className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-opacity-100 transition-colors resize-none"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-black focus:outline-none focus:border-black transition-colors resize-none"
                   style={{ 
-                    borderColor: '#0359b3', 
                     color: '#0359b3',
                     fontFamily: '"Times New Roman", serif'
                   }}
@@ -290,14 +306,32 @@ export default function ContactPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3 md:py-4 rounded-lg text-white font-semibold text-base md:text-lg hover:opacity-90 transition-opacity"
+                disabled={submitStatus === 'submitting'}
+                className="w-full py-3 md:py-4 rounded-lg text-white font-semibold text-base md:text-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                 style={{ 
                   backgroundColor: '#0359b3',
                   fontFamily: '"Times New Roman", serif'
                 }}
               >
-                Send Message via WhatsApp
+                {submitStatus === 'submitting' ? 'Sending...' : 'Send Message'}
               </button>
+
+              {/* Success/Error Messages */}
+              {submitStatus === 'success' && (
+                <div className="p-4 rounded-lg bg-green-100 border-2 border-green-500">
+                  <p className="text-green-700 text-center font-semibold" style={{ fontFamily: '"Times New Roman", serif' }}>
+                    Message sent successfully! We'll get back to you soon.
+                  </p>
+                </div>
+              )}
+              
+              {submitStatus === 'error' && (
+                <div className="p-4 rounded-lg bg-red-100 border-2 border-red-500">
+                  <p className="text-red-700 text-center font-semibold" style={{ fontFamily: '"Times New Roman", serif' }}>
+                    Failed to send message. Please try again.
+                  </p>
+                </div>
+              )}
             </form>
           </div>
 
