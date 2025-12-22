@@ -81,7 +81,7 @@ ${cart.map(item => `${item.name} x${item.quantity} - Rs. ${item.price * item.qua
 *Total Amount: Rs. ${getTotalPrice()}*
 
 *Payment Method: ${paymentMethod === 'cod' ? 'Cash on Delivery' : 'Easypaisa'}*
-${paymentMethod === 'easypaisa' ? '\nEasypaisa Number: 03001234567\n*Payment is compulsory. Please send payment screenshot.*' : ''}
+${paymentMethod === 'easypaisa' ? '\nEasypaisa Number: 923263404576\n*Payment is compulsory. Please send payment screenshot.*' : ''}
     `
 
     const whatsappNumber = '923001234567'
@@ -419,7 +419,7 @@ ${paymentMethod === 'easypaisa' ? '\nEasypaisa Number: 03001234567\n*Payment is 
                   className="text-xs md:text-sm text-center font-medium"
                   style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
                 >
-                  <strong>Easypaisa Number:</strong> 03001234567<br />
+                  <strong>Easypaisa Number:</strong> 923263404576<br />
                   Payment is compulsory. Send us your payment screenshot on our WhatsApp.
                 </p>
               </div>
