@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// In-memory storage (temporary solution)
+// Fallback storage
 let ordersStore: any[] = [];
 
 // CORS headers
@@ -14,15 +14,41 @@ export async function OPTIONS(request: NextRequest) {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+// MongoDB optional import (won't crash if missing)
+let connectDB: any = null;
+let Order: any = null;
+
+try {
+  connectDB = require('@/lib/mongodb').default;
+  Order = require('@/models/Order').default;
+} catch (e) {
+  console.log('⚠️ MongoDB modules not available, using in-memory storage');
+}
+
 // POST: Create new order
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
     
-    // Save to memory
-    ordersStore.push(orderData);
+    // Try MongoDB first
+    if (connectDB && Order) {
+      try {
+        await connectDB();
+        const order = await Order.create(orderData);
+        console.log('✅ Order saved to MongoDB:', orderData.orderId);
+        
+        return NextResponse.json(
+          { success: true, data: order },
+          { status: 201, headers: corsHeaders }
+        );
+      } catch (dbError) {
+        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      }
+    }
     
-    console.log('✅ Order saved:', orderData.orderId);
+    // Fallback to in-memory
+    ordersStore.push(orderData);
+    console.log('✅ Order saved to memory:', orderData.orderId);
     
     return NextResponse.json(
       { success: true, data: orderData },
@@ -40,7 +66,24 @@ export async function POST(request: NextRequest) {
 // GET: Fetch all orders
 export async function GET(request: NextRequest) {
   try {
-    console.log('📦 Fetching orders:', ordersStore.length);
+    // Try MongoDB first
+    if (connectDB && Order) {
+      try {
+        await connectDB();
+        const orders = await Order.find().sort({ createdAt: -1 });
+        console.log('📦 Fetched orders from MongoDB:', orders.length);
+        
+        return NextResponse.json(
+          { success: true, data: orders },
+          { status: 200, headers: corsHeaders }
+        );
+      } catch (dbError) {
+        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      }
+    }
+    
+    // Fallback to in-memory
+    console.log('📦 Fetching orders from memory:', ordersStore.length);
     
     return NextResponse.json(
       { success: true, data: ordersStore },
@@ -68,9 +111,25 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    ordersStore = ordersStore.filter((order: any) => order.orderId !== orderId);
+    // Try MongoDB first
+    if (connectDB && Order) {
+      try {
+        await connectDB();
+        await Order.findOneAndDelete({ orderId });
+        console.log('🗑️ Order deleted from MongoDB:', orderId);
+        
+        return NextResponse.json(
+          { success: true, message: 'Order deleted' },
+          { status: 200, headers: corsHeaders }
+        );
+      } catch (dbError) {
+        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      }
+    }
     
-    console.log('🗑️ Order deleted:', orderId);
+    // Fallback to in-memory
+    ordersStore = ordersStore.filter((order: any) => order.orderId !== orderId);
+    console.log('🗑️ Order deleted from memory:', orderId);
     
     return NextResponse.json(
       { success: true, message: 'Order deleted' },
@@ -97,11 +156,32 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
+    // Try MongoDB first
+    if (connectDB && Order) {
+      try {
+        await connectDB();
+        const order = await Order.findOneAndUpdate(
+          { orderId },
+          { status },
+          { new: true }
+        );
+        console.log('✏️ Order status updated in MongoDB:', orderId, '→', status);
+        
+        return NextResponse.json(
+          { success: true, data: order },
+          { status: 200, headers: corsHeaders }
+        );
+      } catch (dbError) {
+        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      }
+    }
+    
+    // Fallback to in-memory
     ordersStore = ordersStore.map((order: any) => 
       order.orderId === orderId ? { ...order, status } : order
     );
     
-    console.log('✏️ Order status updated:', orderId, '→', status);
+    console.log('✏️ Order status updated in memory:', orderId, '→', status);
     
     const updatedOrder = ordersStore.find((order: any) => order.orderId === orderId);
     
