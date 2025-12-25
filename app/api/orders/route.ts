@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Order from '@/models/Order';
+
+// In-memory storage (temporary solution)
+let ordersStore: any[] = [];
 
 // CORS headers
 const corsHeaders = {
@@ -16,17 +17,15 @@ export async function OPTIONS(request: NextRequest) {
 // POST: Create new order
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-    
     const orderData = await request.json();
     
-    // Save to MongoDB
-    const order = await Order.create(orderData);
+    // Save to memory
+    ordersStore.push(orderData);
     
-    console.log('✅ Order saved to MongoDB:', orderData.orderId);
+    console.log('✅ Order saved:', orderData.orderId);
     
     return NextResponse.json(
-      { success: true, data: order },
+      { success: true, data: orderData },
       { status: 201, headers: corsHeaders }
     );
   } catch (error: any) {
@@ -41,15 +40,10 @@ export async function POST(request: NextRequest) {
 // GET: Fetch all orders
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-    
-    // Fetch from MongoDB (sorted by newest first)
-    const orders = await Order.find().sort({ createdAt: -1 });
-    
-    console.log('📦 Fetched orders from MongoDB:', orders.length);
+    console.log('📦 Fetching orders:', ordersStore.length);
     
     return NextResponse.json(
-      { success: true, data: orders },
+      { success: true, data: ordersStore },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
@@ -64,8 +58,6 @@ export async function GET(request: NextRequest) {
 // DELETE: Delete specific order
 export async function DELETE(request: NextRequest) {
   try {
-    await connectDB();
-    
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
     
@@ -76,7 +68,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    await Order.findOneAndDelete({ orderId });
+    ordersStore = ordersStore.filter((order: any) => order.orderId !== orderId);
     
     console.log('🗑️ Order deleted:', orderId);
     
@@ -96,8 +88,6 @@ export async function DELETE(request: NextRequest) {
 // PATCH: Update order status
 export async function PATCH(request: NextRequest) {
   try {
-    await connectDB();
-    
     const { orderId, status } = await request.json();
     
     if (!orderId || !status) {
@@ -107,16 +97,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    const order = await Order.findOneAndUpdate(
-      { orderId },
-      { status },
-      { new: true }
+    ordersStore = ordersStore.map((order: any) => 
+      order.orderId === orderId ? { ...order, status } : order
     );
     
     console.log('✏️ Order status updated:', orderId, '→', status);
     
+    const updatedOrder = ordersStore.find((order: any) => order.orderId === orderId);
+    
     return NextResponse.json(
-      { success: true, data: order },
+      { success: true, data: updatedOrder },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
