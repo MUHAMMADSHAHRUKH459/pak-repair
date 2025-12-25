@@ -4,7 +4,19 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 
-const banners = [
+interface Product {
+  id: number
+  name: string
+  category: string
+  price: number
+  image: string
+  rating: number
+  reviews: number
+  description: string
+  quantity?: number
+}
+
+const banners: Product[] = [
   { id: 1, name: 'Phone Case Premium', category: 'Cases', price: 500, image: '/banners/case.jpg', rating: 4.5, reviews: 25, description: 'Premium quality phone case with shock absorption. Made with high-grade materials to protect your device from drops and scratches.' },
   { id: 2, name: 'Tempered Glass', category: 'Screen Protectors', price: 300, image: '/banners/pro.jpg', rating: 4.8, reviews: 40, description: '9H hardness tempered glass screen protector. Provides excellent protection against scratches and impacts.' },
   { id: 3, name: 'Power Bank 20000mAh', category: 'Power Banks', price: 3500, image: '/banners/powe.jpg', rating: 4.6, reviews: 30, description: 'Fast charging power bank with dual USB ports. Keep your devices charged on the go.' },
@@ -22,30 +34,34 @@ const banners = [
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const [product, setProduct] = useState<Product | null>(null)
   const [userRating, setUserRating] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [cartCount, setCartCount] = useState(0)
-  
-  const product = banners.find(p => p.id === parseInt(params.id as string))
 
   useEffect(() => {
-    // Update cart count from localStorage
+    const productId = parseInt(params.id as string)
+    const foundProduct = banners.find(p => p.id === productId)
+    setProduct(foundProduct || null)
+    updateCartCount()
+  }, [params.id])
+
+  const updateCartCount = () => {
     const savedCart = localStorage.getItem('cart')
     if (savedCart) {
       const cart = JSON.parse(savedCart)
       setCartCount(cart.length)
     }
-  }, [])
-
-  if (!product) {
-    return <div className="text-center py-20 text-black">Product not found</div>
   }
 
   const handleAddToCart = () => {
+    if (!product) return
+    
     const savedCart = localStorage.getItem('cart')
     let cart = savedCart ? JSON.parse(savedCart) : []
     
-    const existingItem = cart.find((item: any) => item.id === product.id)
+    const existingItem = cart.find((item: Product) => item.id === product.id)
+    
     if (existingItem) {
       existingItem.quantity += quantity
     } else {
@@ -67,6 +83,22 @@ export default function ProductDetailPage() {
     }
   }
 
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Product not found</h2>
+          <button
+            onClick={() => router.push('/shop')}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Back to Shop
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full bg-white min-h-screen">
       {/* Header with Back Button and Cart */}
@@ -74,7 +106,7 @@ export default function ProductDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push('/shop')}
               className="flex items-center gap-2 hover:opacity-70 transition-opacity"
               style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}
             >

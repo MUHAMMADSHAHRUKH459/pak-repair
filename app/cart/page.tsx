@@ -36,6 +36,11 @@ export default function CartPage() {
   
   const DELIVERY_CHARGES = 200
 
+  // Get API URL from environment variable
+  const getApiUrl = () => {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+  }
+
   useEffect(() => {
     const savedCart = localStorage.getItem('cart')
     if (savedCart) {
@@ -90,7 +95,9 @@ export default function CartPage() {
     }
   }
 
-  const confirmCODOrder = () => {
+  const confirmCODOrder = async () => {
+    const apiUrl = getApiUrl()
+    
     const orderData = {
       orderId: `ORD-${Date.now()}`,
       customerDetails: {
@@ -99,13 +106,36 @@ export default function CartPage() {
         phone: formData.phone,
         address: formData.address
       },
-      items: cart,
+      items: cart.map(item => ({
+        ...item,
+        image: item.image.startsWith('http') 
+          ? item.image 
+          : `${apiUrl}${item.image}`
+      })),
       totalAmount: getTotalPrice(),
       paymentMethod: 'Cash on Delivery',
       orderDate: new Date().toISOString(),
       status: 'Pending'
     }
 
+    // Save to database
+    try {
+      const response = await fetch(`${apiUrl}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      })
+      
+      if (response.ok) {
+        console.log('✅ Order saved to database!')
+      } else {
+        console.error('❌ Failed to save order to database')
+      }
+    } catch (error) {
+      console.error('❌ Database error:', error)
+    }
+
+    // Also save to localStorage (backup)
     const existingOrders = localStorage.getItem('adminOrders')
     const orders = existingOrders ? JSON.parse(existingOrders) : []
     orders.push(orderData)
@@ -119,7 +149,9 @@ export default function CartPage() {
     setShowThankYou(true)
   }
 
-  const proceedWithEasypaisa = () => {
+  const proceedWithEasypaisa = async () => {
+    const apiUrl = getApiUrl()
+    
     // Save cart and form data for displaying in modal
     setSavedCartForEasypaisa(cart)
     setSavedFormDataForEasypaisa(formData)
@@ -132,13 +164,36 @@ export default function CartPage() {
         phone: formData.phone,
         address: formData.address
       },
-      items: cart,
+      items: cart.map(item => ({
+        ...item,
+        image: item.image.startsWith('http') 
+          ? item.image 
+          : `${apiUrl}${item.image}`
+      })),
       totalAmount: getTotalPrice(),
       paymentMethod: 'Easypaisa',
       orderDate: new Date().toISOString(),
       status: 'Awaiting Payment'
     }
 
+    // Save to database
+    try {
+      const response = await fetch(`${apiUrl}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      })
+      
+      if (response.ok) {
+        console.log('✅ Easypaisa order saved to database!')
+      } else {
+        console.error('❌ Failed to save order to database')
+      }
+    } catch (error) {
+      console.error('❌ Database error:', error)
+    }
+
+    // localStorage backup
     const existingOrders = localStorage.getItem('adminOrders')
     const orders = existingOrders ? JSON.parse(existingOrders) : []
     orders.push(orderData)
@@ -704,7 +759,6 @@ I have sent the payment screenshot.
 
               <button
                 onClick={() => {
-                  // Clear cart when user decides to send later
                   localStorage.removeItem('cart')
                   setCart([])
                   setFormData({ name: '', email: '', phone: '', address: '' })

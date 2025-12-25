@@ -37,19 +37,21 @@ export default function ShopPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Update cart count from localStorage
+    updateCartCount()
+  }, [])
+
+  const updateCartCount = () => {
     const savedCart = localStorage.getItem('cart')
     if (savedCart) {
       const cart = JSON.parse(savedCart)
       setCartCount(cart.length)
     }
-  }, [])
+  }
 
   const addToCart = (product: Product) => {
     const savedCart = localStorage.getItem('cart')
     let cart = savedCart ? JSON.parse(savedCart) : []
     
-    // Check if product already exists in cart
     const existingItem = cart.find((item: Product) => item.id === product.id)
     if (existingItem) {
       existingItem.quantity += 1
@@ -59,8 +61,6 @@ export default function ShopPage() {
     
     localStorage.setItem('cart', JSON.stringify(cart))
     setCartCount(cart.length)
-    
-    // Show success message
     alert(`${product.name} added to cart!`)
   }
 
@@ -175,7 +175,7 @@ export default function ShopPage() {
                   Rs. {product.price}
                 </p>
 
-                {/* Add to Cart Button - Now at the bottom with proper spacing */}
+                {/* Add to Cart Button */}
                 <button
                   onClick={() => addToCart(product)}
                   className="w-full py-2 md:py-2.5 rounded-lg text-white font-medium text-xs md:text-sm hover:opacity-90 transition-all mt-auto"
