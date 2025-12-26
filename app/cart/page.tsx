@@ -109,27 +109,47 @@ export default function CartPage() {
       status: 'Pending'
     }
 
-    // Instant actions - No waiting!
+    // ⚡ INSTANT ACTIONS - Zero waiting!
     localStorage.removeItem('cart')
     setCart([])
+    setShowCODConfirm(false)
+    
+    // Redirect immediately (no waiting)
     router.push(`/thank-you?orderId=${orderData.orderId}`)
     
-    // Background save (fire and forget)
+    // 📦 Background save with timeout protection
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 sec max
+    
     fetch(`${apiUrl}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderData),
+      signal: controller.signal,
       keepalive: true
-    }).catch(err => console.error('Background save:', err))
+    })
+    .then(response => {
+      clearTimeout(timeoutId)
+      if (response.ok) {
+        console.log('✅ Order saved to database')
+      } else {
+        console.log('⚠️ Database save failed (order recorded locally)')
+      }
+    })
+    .catch(err => {
+      clearTimeout(timeoutId)
+      console.log('⚠️ Background save timeout (order recorded locally):', err.message)
+    })
   }
 
   const proceedWithEasypaisa = () => {
     const apiUrl = getApiUrl()
     
+    const orderId = `ORD-${Date.now()}`
+    
+    // Save for WhatsApp message
     setSavedCartForEasypaisa(cart)
     setSavedFormDataForEasypaisa(formData)
-    
-    const orderId = `ORD-${Date.now()}`
     setCurrentOrderId(orderId)
     
     const orderData = {
@@ -145,17 +165,33 @@ export default function CartPage() {
       status: 'Awaiting Payment'
     }
 
-    // Instant actions - No waiting!
+    // ⚡ INSTANT ACTIONS - Zero waiting!
     setShowCheckout(false)
     setShowEasypaisaInfo(true)
     
-    // Background save (fire and forget)
+    // 📦 Background save with timeout protection
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    
     fetch(`${apiUrl}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(orderData),
+      signal: controller.signal,
       keepalive: true
-    }).catch(err => console.error('Background save:', err))
+    })
+    .then(response => {
+      clearTimeout(timeoutId)
+      if (response.ok) {
+        console.log('✅ Easypaisa order saved')
+      } else {
+        console.log('⚠️ Database save failed')
+      }
+    })
+    .catch(err => {
+      clearTimeout(timeoutId)
+      console.log('⚠️ Background save timeout:', err.message)
+    })
   }
 
   const sendToWhatsApp = () => {
@@ -188,6 +224,7 @@ I have sent the payment screenshot.
 
     const whatsappNumber = '923263404576'
     
+    // Clear everything
     localStorage.removeItem('cart')
     setCart([])
     setFormData({ name: '', email: '', phone: '', address: '' })
@@ -195,7 +232,10 @@ I have sent the payment screenshot.
     setSavedFormDataForEasypaisa({ name: '', email: '', phone: '', address: '' })
     setShowEasypaisaInfo(false)
     
+    // Open WhatsApp
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(orderDetails)}`, '_blank')
+    
+    // Redirect to thank you
     router.push(`/thank-you?orderId=${currentOrderId}`)
   }
 

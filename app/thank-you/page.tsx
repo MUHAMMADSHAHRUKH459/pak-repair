@@ -1,20 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function ThankYouPage() {
+function ThankYouContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState('')
 
   useEffect(() => {
-    // Get order ID from URL
     const id = searchParams.get('orderId')
     if (id) {
       setOrderId(id)
     } else {
-      // No order ID? Redirect to shop
       router.push('/shop')
     }
   }, [searchParams, router])
@@ -168,5 +166,20 @@ export default function ThankYouPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ThankYouPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ThankYouContent />
+    </Suspense>
   )
 }

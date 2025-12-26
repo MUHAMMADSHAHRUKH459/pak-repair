@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['mongoose'],
-  },
-  webpack: (config) => {
-    config.externals = [...(config.externals || []), 'mongoose'];
-    return config;
-  },
+  // Next.js 16 uses serverExternalPackages instead
+  serverExternalPackages: ['mongoose'],
+  
+  // Empty turbopack config to silence warnings
+  turbopack: {},
 };
 
 export default nextConfig;

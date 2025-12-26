@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Fast timeout for MongoDB
+const DB_TIMEOUT = 3000; // 3 seconds max
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,15 +14,23 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// Lazy load MongoDB (prevents build errors)
-async function getMongoose() {
-  try {
+// Fast MongoDB with timeout
+async function getMongooseWithTimeout() {
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('DB timeout')), DB_TIMEOUT)
+  );
+  
+  const mongoPromise = (async () => {
     const connectDB = (await import('@/lib/mongodb')).default;
     const Order = (await import('@/models/Order')).default;
     await connectDB();
     return { Order };
+  })();
+  
+  try {
+    return await Promise.race([mongoPromise, timeoutPromise]) as { Order: any };
   } catch (error) {
-    console.error('MongoDB not available:', error);
+    console.log('⚠️ MongoDB timeout, using fallback');
     return null;
   }
 }
@@ -27,17 +38,17 @@ async function getMongoose() {
 // In-memory fallback
 let ordersStore: any[] = [];
 
-// POST: Create order
+// POST: Create order (with fast timeout)
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
     
-    // Try MongoDB
-    const mongo = await getMongoose();
+    // Try MongoDB with timeout
+    const mongo = await getMongooseWithTimeout();
     if (mongo) {
       try {
         const order = await mongo.Order.create(orderData);
-        console.log('✅ MongoDB:', orderData.orderId);
+        console.log('✅ MongoDB saved:', orderData.orderId);
         return NextResponse.json(
           { success: true, data: order },
           { status: 201, headers: corsHeaders }
@@ -47,9 +58,9 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Fallback
+    // Fallback to memory
     ordersStore.push(orderData);
-    console.log('✅ Memory:', orderData.orderId);
+    console.log('✅ Memory saved:', orderData.orderId);
     return NextResponse.json(
       { success: true, data: orderData },
       { status: 201, headers: corsHeaders }
@@ -63,11 +74,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Fetch orders
+// GET: Fetch orders (with fast timeout)
 export async function GET() {
   try {
-    // Try MongoDB
-    const mongo = await getMongoose();
+    const mongo = await getMongooseWithTimeout();
     if (mongo) {
       try {
         const orders = await mongo.Order.find().sort({ createdAt: -1 });
@@ -81,7 +91,6 @@ export async function GET() {
       }
     }
     
-    // Fallback
     console.log('📦 Memory:', ordersStore.length);
     return NextResponse.json(
       { success: true, data: ordersStore },
@@ -108,8 +117,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // Try MongoDB
-    const mongo = await getMongoose();
+    const mongo = await getMongooseWithTimeout();
     if (mongo) {
       try {
         await mongo.Order.findOneAndDelete({ orderId });
@@ -123,7 +131,6 @@ export async function DELETE(request: NextRequest) {
       }
     }
     
-    // Fallback
     ordersStore = ordersStore.filter((o: any) => o.orderId !== orderId);
     console.log('🗑️ Memory:', orderId);
     return NextResponse.json(
@@ -150,8 +157,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    // Try MongoDB
-    const mongo = await getMongoose();
+    const mongo = await getMongooseWithTimeout();
     if (mongo) {
       try {
         const order = await mongo.Order.findOneAndUpdate(
@@ -169,7 +175,6 @@ export async function PATCH(request: NextRequest) {
       }
     }
     
-    // Fallback
     ordersStore = ordersStore.map((o: any) => 
       o.orderId === orderId ? { ...o, status } : o
     );
