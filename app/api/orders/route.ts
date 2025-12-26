@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Fallback storage
-let ordersStore: any[] = [];
-
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,52 +7,55 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// MongoDB optional import (won't crash if missing)
-let connectDB: any = null;
-let Order: any = null;
-
-try {
-  connectDB = require('@/lib/mongodb').default;
-  Order = require('@/models/Order').default;
-} catch (e) {
-  console.log('⚠️ MongoDB modules not available, using in-memory storage');
+// Lazy load MongoDB (prevents build errors)
+async function getMongoose() {
+  try {
+    const connectDB = (await import('@/lib/mongodb')).default;
+    const Order = (await import('@/models/Order')).default;
+    await connectDB();
+    return { Order };
+  } catch (error) {
+    console.error('MongoDB not available:', error);
+    return null;
+  }
 }
 
-// POST: Create new order
+// In-memory fallback
+let ordersStore: any[] = [];
+
+// POST: Create order
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
     
-    // Try MongoDB first
-    if (connectDB && Order) {
+    // Try MongoDB
+    const mongo = await getMongoose();
+    if (mongo) {
       try {
-        await connectDB();
-        const order = await Order.create(orderData);
-        console.log('✅ Order saved to MongoDB:', orderData.orderId);
-        
+        const order = await mongo.Order.create(orderData);
+        console.log('✅ MongoDB:', orderData.orderId);
         return NextResponse.json(
           { success: true, data: order },
           { status: 201, headers: corsHeaders }
         );
-      } catch (dbError) {
-        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      } catch (err) {
+        console.error('MongoDB error:', err);
       }
     }
     
-    // Fallback to in-memory
+    // Fallback
     ordersStore.push(orderData);
-    console.log('✅ Order saved to memory:', orderData.orderId);
-    
+    console.log('✅ Memory:', orderData.orderId);
     return NextResponse.json(
       { success: true, data: orderData },
       { status: 201, headers: corsHeaders }
     );
   } catch (error: any) {
-    console.error('❌ Error saving order:', error);
+    console.error('❌ Error:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
@@ -63,34 +63,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Fetch all orders
-export async function GET(request: NextRequest) {
+// GET: Fetch orders
+export async function GET() {
   try {
-    // Try MongoDB first
-    if (connectDB && Order) {
+    // Try MongoDB
+    const mongo = await getMongoose();
+    if (mongo) {
       try {
-        await connectDB();
-        const orders = await Order.find().sort({ createdAt: -1 });
-        console.log('📦 Fetched orders from MongoDB:', orders.length);
-        
+        const orders = await mongo.Order.find().sort({ createdAt: -1 });
+        console.log('📦 MongoDB:', orders.length);
         return NextResponse.json(
           { success: true, data: orders },
           { status: 200, headers: corsHeaders }
         );
-      } catch (dbError) {
-        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      } catch (err) {
+        console.error('MongoDB error:', err);
       }
     }
     
-    // Fallback to in-memory
-    console.log('📦 Fetching orders from memory:', ordersStore.length);
-    
+    // Fallback
+    console.log('📦 Memory:', ordersStore.length);
     return NextResponse.json(
       { success: true, data: ordersStore },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
-    console.error('❌ Error fetching orders:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
@@ -98,7 +95,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// DELETE: Delete specific order
+// DELETE: Remove order
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -111,32 +108,29 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // Try MongoDB first
-    if (connectDB && Order) {
+    // Try MongoDB
+    const mongo = await getMongoose();
+    if (mongo) {
       try {
-        await connectDB();
-        await Order.findOneAndDelete({ orderId });
-        console.log('🗑️ Order deleted from MongoDB:', orderId);
-        
+        await mongo.Order.findOneAndDelete({ orderId });
+        console.log('🗑️ MongoDB:', orderId);
         return NextResponse.json(
-          { success: true, message: 'Order deleted' },
+          { success: true },
           { status: 200, headers: corsHeaders }
         );
-      } catch (dbError) {
-        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      } catch (err) {
+        console.error('MongoDB error:', err);
       }
     }
     
-    // Fallback to in-memory
-    ordersStore = ordersStore.filter((order: any) => order.orderId !== orderId);
-    console.log('🗑️ Order deleted from memory:', orderId);
-    
+    // Fallback
+    ordersStore = ordersStore.filter((o: any) => o.orderId !== orderId);
+    console.log('🗑️ Memory:', orderId);
     return NextResponse.json(
-      { success: true, message: 'Order deleted' },
+      { success: true },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
-    console.error('❌ Error deleting order:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
@@ -144,53 +138,48 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PATCH: Update order status
+// PATCH: Update status
 export async function PATCH(request: NextRequest) {
   try {
     const { orderId, status } = await request.json();
     
     if (!orderId || !status) {
       return NextResponse.json(
-        { success: false, error: 'Order ID and status required' },
+        { success: false, error: 'Missing data' },
         { status: 400, headers: corsHeaders }
       );
     }
     
-    // Try MongoDB first
-    if (connectDB && Order) {
+    // Try MongoDB
+    const mongo = await getMongoose();
+    if (mongo) {
       try {
-        await connectDB();
-        const order = await Order.findOneAndUpdate(
+        const order = await mongo.Order.findOneAndUpdate(
           { orderId },
           { status },
           { new: true }
         );
-        console.log('✏️ Order status updated in MongoDB:', orderId, '→', status);
-        
+        console.log('✏️ MongoDB:', orderId, status);
         return NextResponse.json(
           { success: true, data: order },
           { status: 200, headers: corsHeaders }
         );
-      } catch (dbError) {
-        console.error('⚠️ MongoDB error, using fallback:', dbError);
+      } catch (err) {
+        console.error('MongoDB error:', err);
       }
     }
     
-    // Fallback to in-memory
-    ordersStore = ordersStore.map((order: any) => 
-      order.orderId === orderId ? { ...order, status } : order
+    // Fallback
+    ordersStore = ordersStore.map((o: any) => 
+      o.orderId === orderId ? { ...o, status } : o
     );
-    
-    console.log('✏️ Order status updated in memory:', orderId, '→', status);
-    
-    const updatedOrder = ordersStore.find((order: any) => order.orderId === orderId);
-    
+    const order = ordersStore.find((o: any) => o.orderId === orderId);
+    console.log('✏️ Memory:', orderId, status);
     return NextResponse.json(
-      { success: true, data: updatedOrder },
+      { success: true, data: order },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
-    console.error('❌ Error updating order:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }

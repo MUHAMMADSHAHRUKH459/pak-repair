@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  turbopack: {}, // Empty config to disable crash
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose'],
+  },
+  webpack: (config) => {
+    config.externals = [...(config.externals || []), 'mongoose'];
+    return config;
+  },
 };
 
 export default nextConfig;

@@ -24,8 +24,6 @@ export default function CartPage() {
   const [showCheckout, setShowCheckout] = useState(false)
   const [showEasypaisaInfo, setShowEasypaisaInfo] = useState(false)
   const [showCODConfirm, setShowCODConfirm] = useState(false)
-  const [showThankYou, setShowThankYou] = useState(false)
-  const [currentOrderId, setCurrentOrderId] = useState('')
   const [savedCartForEasypaisa, setSavedCartForEasypaisa] = useState<CartProduct[]>([])
   const [savedFormDataForEasypaisa, setSavedFormDataForEasypaisa] = useState({
     name: '',
@@ -33,6 +31,7 @@ export default function CartPage() {
     phone: '',
     address: ''
   })
+  const [currentOrderId, setCurrentOrderId] = useState('')
   
   const DELIVERY_CHARGES = 200
 
@@ -129,35 +128,32 @@ export default function CartPage() {
       if (response.ok) {
         console.log('✅ Order saved to database!')
       } else {
-        console.error('❌ Failed to save order to database')
+        console.error('❌ Failed to save order')
       }
     } catch (error) {
       console.error('❌ Database error:', error)
     }
 
-    // Also save to localStorage (backup)
-    const existingOrders = localStorage.getItem('adminOrders')
-    const orders = existingOrders ? JSON.parse(existingOrders) : []
-    orders.push(orderData)
-    localStorage.setItem('adminOrders', JSON.stringify(orders))
-
+    // Clear cart
     localStorage.removeItem('cart')
     setCart([])
     
-    setCurrentOrderId(orderData.orderId)
-    setShowCODConfirm(false)
-    setShowThankYou(true)
+    // Redirect to thank you page
+    router.push(`/thank-you?orderId=${orderData.orderId}`)
   }
 
   const proceedWithEasypaisa = async () => {
     const apiUrl = getApiUrl()
     
-    // Save cart and form data for displaying in modal
+    // Save cart and form data for WhatsApp
     setSavedCartForEasypaisa(cart)
     setSavedFormDataForEasypaisa(formData)
     
+    const orderId = `ORD-${Date.now()}`
+    setCurrentOrderId(orderId)
+    
     const orderData = {
-      orderId: `ORD-${Date.now()}`,
+      orderId: orderId,
       customerDetails: {
         name: formData.name,
         email: formData.email,
@@ -185,23 +181,16 @@ export default function CartPage() {
       })
       
       if (response.ok) {
-        console.log('✅ Easypaisa order saved to database!')
+        console.log('✅ Easypaisa order saved!')
       } else {
-        console.error('❌ Failed to save order to database')
+        console.error('❌ Failed to save order')
       }
     } catch (error) {
       console.error('❌ Database error:', error)
     }
-
-    // localStorage backup
-    const existingOrders = localStorage.getItem('adminOrders')
-    const orders = existingOrders ? JSON.parse(existingOrders) : []
-    orders.push(orderData)
-    localStorage.setItem('adminOrders', JSON.stringify(orders))
     
     setShowCheckout(false)
     setShowEasypaisaInfo(true)
-    setCurrentOrderId(orderData.orderId)
   }
 
   const sendToWhatsApp = () => {
@@ -234,7 +223,7 @@ I have sent the payment screenshot.
 
     const whatsappNumber = '923263404576'
     
-    // Now clear everything
+    // Clear cart
     localStorage.removeItem('cart')
     setCart([])
     setFormData({ name: '', email: '', phone: '', address: '' })
@@ -242,15 +231,11 @@ I have sent the payment screenshot.
     setSavedFormDataForEasypaisa({ name: '', email: '', phone: '', address: '' })
     setShowEasypaisaInfo(false)
     
+    // Open WhatsApp
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(orderDetails)}`, '_blank')
     
-    setShowThankYou(true)
-  }
-
-  const handleContinueShopping = () => {
-    setShowThankYou(false)
-    setFormData({ name: '', email: '', phone: '', address: '' })
-    router.push('/shop')
+    // Redirect to thank you page
+    router.push(`/thank-you?orderId=${currentOrderId}`)
   }
 
   if (cart.length === 0) {
@@ -758,64 +743,11 @@ I have sent the payment screenshot.
               </button>
 
               <button
-                onClick={() => {
-                  localStorage.removeItem('cart')
-                  setCart([])
-                  setFormData({ name: '', email: '', phone: '', address: '' })
-                  setSavedCartForEasypaisa([])
-                  setSavedFormDataForEasypaisa({ name: '', email: '', phone: '', address: '' })
-                  setShowEasypaisaInfo(false)
-                  alert('Order created! Please send your payment screenshot to WhatsApp: 0923263404576')
-                }}
+                onClick={sendToWhatsApp}
                 className="w-full py-3 rounded-lg border-2 border-gray-300 font-semibold hover:bg-gray-50 transition-all text-gray-700"
                 style={{ fontFamily: '"Times New Roman", serif' }}
               >
                 I'll Send Later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Thank You Modal */}
-      {showThankYou && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 md:p-8">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-
-              <h2 
-                className="text-2xl md:text-3xl font-bold text-black mb-3"
-                style={{ fontFamily: '"Times New Roman", serif' }}
-              >
-                Thank You!
-              </h2>
-              
-              <p className="text-gray-600 text-base mb-2">
-                Your order has been placed successfully
-              </p>
-
-              <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-gray-600 mb-1">Order ID</p>
-                <p className="text-lg font-bold" style={{ color: '#0359b3', fontFamily: '"Times New Roman", serif' }}>
-                  {currentOrderId}
-                </p>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-6">
-                We will contact you soon to confirm your order and delivery details.
-              </p>
-
-              <button
-                onClick={handleContinueShopping}
-                className="w-full py-3 rounded-lg text-white font-bold hover:opacity-90 transition-all"
-                style={{ backgroundColor: '#0359b3', fontFamily: '"Times New Roman", serif' }}
-              >
-                Continue Shopping
               </button>
             </div>
           </div>
