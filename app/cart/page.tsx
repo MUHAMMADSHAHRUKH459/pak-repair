@@ -35,7 +35,6 @@ export default function CartPage() {
   
   const DELIVERY_CHARGES = 200
 
-  // Get API URL from environment variable
   const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
   }
@@ -94,22 +93,15 @@ export default function CartPage() {
     }
   }
 
-  const confirmCODOrder = async () => {
+  const confirmCODOrder = () => {
     const apiUrl = getApiUrl()
     
     const orderData = {
       orderId: `ORD-${Date.now()}`,
-      customerDetails: {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address
-      },
+      customerDetails: formData,
       items: cart.map(item => ({
         ...item,
-        image: item.image.startsWith('http') 
-          ? item.image 
-          : `${apiUrl}${item.image}`
+        image: item.image.startsWith('http') ? item.image : `${apiUrl}${item.image}`
       })),
       totalAmount: getTotalPrice(),
       paymentMethod: 'Cash on Delivery',
@@ -117,35 +109,23 @@ export default function CartPage() {
       status: 'Pending'
     }
 
-    // Save to database
-    try {
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      })
-      
-      if (response.ok) {
-        console.log('✅ Order saved to database!')
-      } else {
-        console.error('❌ Failed to save order')
-      }
-    } catch (error) {
-      console.error('❌ Database error:', error)
-    }
-
-    // Clear cart
+    // Instant actions - No waiting!
     localStorage.removeItem('cart')
     setCart([])
-    
-    // Redirect to thank you page
     router.push(`/thank-you?orderId=${orderData.orderId}`)
+    
+    // Background save (fire and forget)
+    fetch(`${apiUrl}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      keepalive: true
+    }).catch(err => console.error('Background save:', err))
   }
 
-  const proceedWithEasypaisa = async () => {
+  const proceedWithEasypaisa = () => {
     const apiUrl = getApiUrl()
     
-    // Save cart and form data for WhatsApp
     setSavedCartForEasypaisa(cart)
     setSavedFormDataForEasypaisa(formData)
     
@@ -154,17 +134,10 @@ export default function CartPage() {
     
     const orderData = {
       orderId: orderId,
-      customerDetails: {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address
-      },
+      customerDetails: formData,
       items: cart.map(item => ({
         ...item,
-        image: item.image.startsWith('http') 
-          ? item.image 
-          : `${apiUrl}${item.image}`
+        image: item.image.startsWith('http') ? item.image : `${apiUrl}${item.image}`
       })),
       totalAmount: getTotalPrice(),
       paymentMethod: 'Easypaisa',
@@ -172,25 +145,17 @@ export default function CartPage() {
       status: 'Awaiting Payment'
     }
 
-    // Save to database
-    try {
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      })
-      
-      if (response.ok) {
-        console.log('✅ Easypaisa order saved!')
-      } else {
-        console.error('❌ Failed to save order')
-      }
-    } catch (error) {
-      console.error('❌ Database error:', error)
-    }
-    
+    // Instant actions - No waiting!
     setShowCheckout(false)
     setShowEasypaisaInfo(true)
+    
+    // Background save (fire and forget)
+    fetch(`${apiUrl}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      keepalive: true
+    }).catch(err => console.error('Background save:', err))
   }
 
   const sendToWhatsApp = () => {
@@ -223,7 +188,6 @@ I have sent the payment screenshot.
 
     const whatsappNumber = '923263404576'
     
-    // Clear cart
     localStorage.removeItem('cart')
     setCart([])
     setFormData({ name: '', email: '', phone: '', address: '' })
@@ -231,10 +195,7 @@ I have sent the payment screenshot.
     setSavedFormDataForEasypaisa({ name: '', email: '', phone: '', address: '' })
     setShowEasypaisaInfo(false)
     
-    // Open WhatsApp
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(orderDetails)}`, '_blank')
-    
-    // Redirect to thank you page
     router.push(`/thank-you?orderId=${currentOrderId}`)
   }
 
