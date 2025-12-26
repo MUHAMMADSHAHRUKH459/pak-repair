@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@upstash/redis": "^1.36.0",
+    "ioredis": "^5.8.2",
     "mongoose": "^9.0.2",
     "next": "16.1.0",
     "react": "19.2.3",

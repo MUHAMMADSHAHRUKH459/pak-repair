@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import Redis from 'ioredis';
 
-// Initialize Redis with KV_URL
-const redis = new Redis({
-  url: process.env.KV_URL || '',
-  token: '', // Not needed for Redis Labs URL
-});
+// Initialize Redis client
+let redis: Redis | null = null;
+
+function getRedisClient() {
+  if (!redis) {
+    const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
+    if (redisUrl) {
+      redis = new Redis(redisUrl);
+    }
+  }
+  return redis;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +28,17 @@ export async function OPTIONS() {
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
+    const client = getRedisClient();
     
-    // Save to Redis KV
-    await redis.set(`order:${orderData.orderId}`, JSON.stringify(orderData));
-    await redis.lpush('orders:list', orderData.orderId);
+    if (!client) {
+      throw new Error('Redis client not initialized');
+    }
     
-    console.log('✅ Order saved to KV:', orderData.orderId);
+    // Save to Redis
+    await client.set(`order:${orderData.orderId}`, JSON.stringify(orderData));
+    await client.lpush('orders:list', orderData.orderId);
+    
+    console.log('✅ Order saved to Redis:', orderData.orderId);
     
     return NextResponse.json(
       { success: true, data: orderData },
@@ -44,7 +56,14 @@ export async function POST(request: NextRequest) {
 // GET: Fetch all orders
 export async function GET() {
   try {
-    const orderIds: string[] = await redis.lrange('orders:list', 0, -1) || [];
+    const client = getRedisClient();
+    
+    if (!client) {
+      throw new Error('Redis client not initialized');
+    }
+    
+    // Get all order IDs
+    const orderIds = await client.lrange('orders:list', 0, -1);
     
     if (orderIds.length === 0) {
       return NextResponse.json(
@@ -53,23 +72,23 @@ export async function GET() {
       );
     }
     
-    const orders = await Promise.all(
-      orderIds.map(async (id) => {
-        const data = await redis.get(`order:${id}`);
-        return typeof data === 'string' ? JSON.parse(data) : data;
-      })
+    // Fetch all orders
+    const ordersData = await Promise.all(
+      orderIds.map(id => client.get(`order:${id}`))
     );
     
-    const validOrders = orders
+    // Parse and sort
+    const orders = ordersData
       .filter(Boolean)
-      .sort((a: any, b: any) => 
+      .map(data => JSON.parse(data as string))
+      .sort((a, b) => 
         new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
       );
     
-    console.log('📦 Fetched orders from KV:', validOrders.length);
+    console.log('📦 Fetched orders from Redis:', orders.length);
     
     return NextResponse.json(
-      { success: true, data: validOrders },
+      { success: true, data: orders },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
@@ -94,10 +113,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    await redis.del(`order:${orderId}`);
-    await redis.lrem('orders:list', 0, orderId);
+    const client = getRedisClient();
     
-    console.log('🗑️ Order deleted from KV:', orderId);
+    if (!client) {
+      throw new Error('Redis client not initialized');
+    }
+    
+    // Delete from Redis
+    await client.del(`order:${orderId}`);
+    await client.lrem('orders:list', 0, orderId);
+    
+    console.log('🗑️ Order deleted from Redis:', orderId);
     
     return NextResponse.json(
       { success: true },
@@ -124,20 +150,29 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    const data = await redis.get(`order:${orderId}`);
-    const order = typeof data === 'string' ? JSON.parse(data) : data;
+    const client = getRedisClient();
     
-    if (!order) {
+    if (!client) {
+      throw new Error('Redis client not initialized');
+    }
+    
+    // Get existing order
+    const data = await client.get(`order:${orderId}`);
+    
+    if (!data) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
         { status: 404, headers: corsHeaders }
       );
     }
     
+    const order = JSON.parse(data);
     order.status = status;
-    await redis.set(`order:${orderId}`, JSON.stringify(order));
     
-    console.log('✏️ Status updated in KV:', orderId, status);
+    // Update in Redis
+    await client.set(`order:${orderId}`, JSON.stringify(order));
+    
+    console.log('✏️ Status updated in Redis:', orderId, status);
     
     return NextResponse.json(
       { success: true, data: order },
