@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
 
-// Fast timeout for MongoDB
-const DB_TIMEOUT = 3000; // 3 seconds max
+// Initialize Redis with KV_URL
+const redis = new Redis({
+  url: process.env.KV_URL || '',
+  token: '', // Not needed for Redis Labs URL
+});
 
-// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
@@ -14,53 +17,17 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-// Fast MongoDB with timeout
-async function getMongooseWithTimeout() {
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('DB timeout')), DB_TIMEOUT)
-  );
-  
-  const mongoPromise = (async () => {
-    const connectDB = (await import('@/lib/mongodb')).default;
-    const Order = (await import('@/models/Order')).default;
-    await connectDB();
-    return { Order };
-  })();
-  
-  try {
-    return await Promise.race([mongoPromise, timeoutPromise]) as { Order: any };
-  } catch (error) {
-    console.log('⚠️ MongoDB timeout, using fallback');
-    return null;
-  }
-}
-
-// In-memory fallback
-let ordersStore: any[] = [];
-
-// POST: Create order (with fast timeout)
+// POST: Save order
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
     
-    // Try MongoDB with timeout
-    const mongo = await getMongooseWithTimeout();
-    if (mongo) {
-      try {
-        const order = await mongo.Order.create(orderData);
-        console.log('✅ MongoDB saved:', orderData.orderId);
-        return NextResponse.json(
-          { success: true, data: order },
-          { status: 201, headers: corsHeaders }
-        );
-      } catch (err) {
-        console.error('MongoDB error:', err);
-      }
-    }
+    // Save to Redis KV
+    await redis.set(`order:${orderData.orderId}`, JSON.stringify(orderData));
+    await redis.lpush('orders:list', orderData.orderId);
     
-    // Fallback to memory
-    ordersStore.push(orderData);
-    console.log('✅ Memory saved:', orderData.orderId);
+    console.log('✅ Order saved to KV:', orderData.orderId);
+    
     return NextResponse.json(
       { success: true, data: orderData },
       { status: 201, headers: corsHeaders }
@@ -74,29 +41,39 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Fetch orders (with fast timeout)
+// GET: Fetch all orders
 export async function GET() {
   try {
-    const mongo = await getMongooseWithTimeout();
-    if (mongo) {
-      try {
-        const orders = await mongo.Order.find().sort({ createdAt: -1 });
-        console.log('📦 MongoDB:', orders.length);
-        return NextResponse.json(
-          { success: true, data: orders },
-          { status: 200, headers: corsHeaders }
-        );
-      } catch (err) {
-        console.error('MongoDB error:', err);
-      }
+    const orderIds: string[] = await redis.lrange('orders:list', 0, -1) || [];
+    
+    if (orderIds.length === 0) {
+      return NextResponse.json(
+        { success: true, data: [] },
+        { status: 200, headers: corsHeaders }
+      );
     }
     
-    console.log('📦 Memory:', ordersStore.length);
+    const orders = await Promise.all(
+      orderIds.map(async (id) => {
+        const data = await redis.get(`order:${id}`);
+        return typeof data === 'string' ? JSON.parse(data) : data;
+      })
+    );
+    
+    const validOrders = orders
+      .filter(Boolean)
+      .sort((a: any, b: any) => 
+        new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+      );
+    
+    console.log('📦 Fetched orders from KV:', validOrders.length);
+    
     return NextResponse.json(
-      { success: true, data: ordersStore },
+      { success: true, data: validOrders },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
+    console.error('❌ Error:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
@@ -117,27 +94,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const mongo = await getMongooseWithTimeout();
-    if (mongo) {
-      try {
-        await mongo.Order.findOneAndDelete({ orderId });
-        console.log('🗑️ MongoDB:', orderId);
-        return NextResponse.json(
-          { success: true },
-          { status: 200, headers: corsHeaders }
-        );
-      } catch (err) {
-        console.error('MongoDB error:', err);
-      }
-    }
+    await redis.del(`order:${orderId}`);
+    await redis.lrem('orders:list', 0, orderId);
     
-    ordersStore = ordersStore.filter((o: any) => o.orderId !== orderId);
-    console.log('🗑️ Memory:', orderId);
+    console.log('🗑️ Order deleted from KV:', orderId);
+    
     return NextResponse.json(
       { success: true },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
+    console.error('❌ Error:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
@@ -157,34 +124,27 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    const mongo = await getMongooseWithTimeout();
-    if (mongo) {
-      try {
-        const order = await mongo.Order.findOneAndUpdate(
-          { orderId },
-          { status },
-          { new: true }
-        );
-        console.log('✏️ MongoDB:', orderId, status);
-        return NextResponse.json(
-          { success: true, data: order },
-          { status: 200, headers: corsHeaders }
-        );
-      } catch (err) {
-        console.error('MongoDB error:', err);
-      }
+    const data = await redis.get(`order:${orderId}`);
+    const order = typeof data === 'string' ? JSON.parse(data) : data;
+    
+    if (!order) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404, headers: corsHeaders }
+      );
     }
     
-    ordersStore = ordersStore.map((o: any) => 
-      o.orderId === orderId ? { ...o, status } : o
-    );
-    const order = ordersStore.find((o: any) => o.orderId === orderId);
-    console.log('✏️ Memory:', orderId, status);
+    order.status = status;
+    await redis.set(`order:${orderId}`, JSON.stringify(order));
+    
+    console.log('✏️ Status updated in KV:', orderId, status);
+    
     return NextResponse.json(
       { success: true, data: order },
       { status: 200, headers: corsHeaders }
     );
   } catch (error: any) {
+    console.error('❌ Error:', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500, headers: corsHeaders }
