@@ -6,7 +6,7 @@ const categories = [
   {
     id: 1,
     name: 'Mobile',
-    image: '/banners/mob1.jpg',
+    image: '/banners/phone1.jpg',
   },
   {
     id: 2,
